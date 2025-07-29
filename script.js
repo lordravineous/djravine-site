@@ -20,7 +20,9 @@ function applyParallax(offsetX, offsetY) {
 
   // Apply a subtle translation to the background only
   // Smaller multipliers yield a less intense effect
-  bg.style.transform = `translate(${x * 0.02}px, ${y * 0.02}px) scale(1.03)`;
+  // Increase the translation multiplier for a slightly stronger parallax on desktop.
+  // The background will now move up to ~7.5px at the extremes instead of ~3px.
+  bg.style.transform = `translate(${x * 0.05}px, ${y * 0.05}px) scale(1.03)`;
 }
 
 // Mouse move handler for desktop
@@ -48,4 +50,48 @@ function handleDeviceOrientation(event) {
 
 // Register event listeners
 window.addEventListener('mousemove', handleMouseMove);
-window.addEventListener('deviceorientation', handleDeviceOrientation);
+
+/*
+ * Mobile device orientation handling
+ *
+ * On iOS 13+ devices, access to the device's accelerometer/gyroscope data
+ * requires an explicit permission request triggered by a user gesture. If we
+ * attempt to listen to `deviceorientation` without permission, no data will
+ * be delivered and the parallax will appear to "not work" on mobile. To
+ * address this, we request permission after the first user interaction
+ * (touchstart or click). On other platforms that do not require a
+ * permission request, we simply attach the event listener directly.
+ */
+
+function enableDeviceOrientation() {
+  // If the API or requestPermission is undefined, just attach the listener
+  if (typeof DeviceOrientationEvent === 'undefined') return;
+
+  const attachListener = () => {
+    // Avoid adding multiple listeners
+    if (!enableDeviceOrientation.listenerAttached) {
+      window.addEventListener('deviceorientation', handleDeviceOrientation);
+      enableDeviceOrientation.listenerAttached = true;
+    }
+  };
+
+  // iOS 13+ requires a permission prompt
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then((response) => {
+        if (response === 'granted') {
+          attachListener();
+        }
+      })
+      .catch((err) => {
+        console.warn('DeviceOrientation permission error:', err);
+      });
+  } else {
+    // Other platforms attach immediately
+    attachListener();
+  }
+}
+
+// Request permission on first user gesture
+document.addEventListener('touchstart', enableDeviceOrientation, { once: true });
+document.addEventListener('click', enableDeviceOrientation, { once: true });
