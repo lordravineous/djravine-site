@@ -6,8 +6,31 @@ const bg = document.querySelector('.parallax-bg');
 const logo = document.getElementById('logo');
 
 /**
- * Apply transforms to the background image only. The logo and socials stay fixed
- * so they remain easy to click. We also tone down the effect so it is more subtle.
+ * Detect if the user is on a mobile device. We use a combination of
+ * user-agent sniffing and orientation detection as a heuristic. This
+ * enables us to adjust the base scale of the background image on mobile
+ * devices to provide more vertical real estate for the parallax effect.
+ */
+const isMobile = (() => {
+  // Check for mobile-specific substrings in the user agent
+  const ua = navigator.userAgent || '';
+  const mobileRegex = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|BlackBerry|BB|PlayBook/i;
+  // Some desktop browsers expose orientation API but we only want to treat
+  // devices with a window.orientation property as mobile if UA also matches
+  return mobileRegex.test(ua) || typeof window.orientation !== 'undefined';
+})();
+
+// Define the base scale applied to the background. On mobile, we zoom in by
+// about 20% (scale of 1.2) so there is more room for vertical motion. On
+// desktop, we keep a smaller zoom for clarity.
+const baseScale = isMobile ? 1.2 : 1.03;
+
+/**
+ * Apply transforms to the background image only. The logo and socials stay
+ * fixed so they remain easy to click. We also control the intensity via
+ * translation multipliers. The scale factor is determined by `baseScale`,
+ * which is larger on mobile devices to provide more vertical space for
+ * parallax motion.
  *
  * @param {number} offsetX Horizontal offset (positive to the right)
  * @param {number} offsetY Vertical offset (positive downwards)
@@ -18,11 +41,14 @@ function applyParallax(offsetX, offsetY) {
   const x = clampVal(offsetX, 150);
   const y = clampVal(offsetY, 150);
 
-  // Apply a subtle translation to the background only
-  // Smaller multipliers yield a less intense effect
-  // Increase the translation multiplier for a slightly stronger parallax on desktop.
-  // The background will now move up to ~7.5px at the extremes instead of ~3px.
-  bg.style.transform = `translate(${x * 0.05}px, ${y * 0.05}px) scale(1.03)`;
+  // We use a stronger translation multiplier on desktop; on mobile the
+  // multiplier remains the same but the background is zoomed in so the
+  // relative motion appears more pronounced. Feel free to adjust these
+  // values if you want to further tweak the effect.
+  const translationFactor = 0.05;
+
+  // Apply translation and scale to the background only
+  bg.style.transform = `translate(${x * translationFactor}px, ${y * translationFactor}px) scale(${baseScale})`;
 }
 
 // Mouse move handler for desktop
