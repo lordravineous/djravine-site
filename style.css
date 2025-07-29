@@ -1,0 +1,88 @@
+/* Reset some defaults */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  background-color: #000;
+}
+
+/* Container with perspective to give a 3D effect */
+#container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  perspective: 1000px;
+}
+
+/* Background image layer */
+.parallax-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('background.jpg');
+  background-size: cover;
+  background-position: center;
+  transform: translateZ(-50px) scale(1.1);
+  transition: transform 0.1s linear;
+}
+
+/* Logo floating above background */
+#logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60vw;
+  max-width: 400px;
+  transform: translate(-50%, -50%) translateZ(20px);
+  pointer-events: none;
+  transition: transform 0.1s linear;
+}
+
+/* Social icons at the bottom center */
+.socials {
+  position: absolute;
+  bottom: 40px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  z-index: 2;
+}
+
+.socials a {
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  transition: opacity 0.2s ease;
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+/* On hover increase opacity */
+/* When a user hovers or focuses on a social link, increase visibility */
+.socials a:hover,
+.socials a:focus {
+  opacity: 1;
+}
+
+/* Style the SVG icons inside the social links */
+.socials img {
+  width: 100%;
+  height: 100%;
+  filter: invert(1);
+}
