@@ -5,25 +5,34 @@ const container = document.getElementById('container');
 const bg = document.querySelector('.parallax-bg');
 const logo = document.getElementById('logo');
 
+// Check if user prefers reduced motion for accessibility
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /**
- * Detect if the user is on a mobile device. We use a combination of
- * user-agent sniffing and orientation detection as a heuristic. This
- * enables us to adjust the base scale of the background image on mobile
+ * Detect if the user is on a mobile device using modern feature detection.
+ * We use user-agent sniffing and touch capability detection as a heuristic.
+ * This enables us to adjust the base scale of the background image on mobile
  * devices to provide more vertical real estate for the parallax effect.
  */
 const isMobile = (() => {
   // Check for mobile-specific substrings in the user agent
   const ua = navigator.userAgent || '';
   const mobileRegex = /Mobi|Android|iPhone|iPad|iPod|Windows Phone|BlackBerry|BB|PlayBook/i;
-  // Some desktop browsers expose orientation API but we only want to treat
-  // devices with a window.orientation property as mobile if UA also matches
-  return mobileRegex.test(ua) || typeof window.orientation !== 'undefined';
+  // Check for touch support as an additional indicator
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return mobileRegex.test(ua) || (hasTouch && window.innerWidth < 1024);
 })();
 
 // Define the base scale applied to the background. On mobile, we zoom in by
 // about 20% (scale of 1.2) so there is more room for vertical motion. On
 // desktop, we keep a smaller zoom for clarity.
-const baseScale = isMobile ? 1.2 : 1.03;
+const baseScale = isMobile ? 1.2 : 1.05;
+
+// Current and target positions for smooth animation
+let currentX = 0;
+let currentY = 0;
+let targetX = 0;
+let targetY = 0;
 
 /**
  * Apply transforms to the background image only. The logo and socials stay
@@ -36,30 +45,57 @@ const baseScale = isMobile ? 1.2 : 1.03;
  * @param {number} offsetY Vertical offset (positive downwards)
  */
 function applyParallax(offsetX, offsetY) {
+  // If user prefers reduced motion, don't apply parallax effect
+  if (prefersReducedMotion) {
+    bg.style.transform = `scale(${baseScale})`;
+    return;
+  }
+
   // Limit the offset to avoid extreme translations
   const clampVal = (val, limit) => Math.min(Math.max(val, -limit), limit);
   const x = clampVal(offsetX, 150);
   const y = clampVal(offsetY, 150);
 
-  // We use a stronger translation multiplier on desktop; on mobile the
-  // multiplier remains the same but the background is zoomed in so the
-  // relative motion appears more pronounced. Feel free to adjust these
-  // values if you want to further tweak the effect.
-  const translationFactor = 0.05;
+  // Increased translation factor for more noticeable effect
+  // Desktop gets a stronger effect, mobile uses the zoomed background for motion
+  const translationFactor = isMobile ? 0.08 : 0.15;
 
   // Apply translation and scale to the background only
   bg.style.transform = `translate(${x * translationFactor}px, ${y * translationFactor}px) scale(${baseScale})`;
 }
 
-// Mouse move handler for desktop
+// Mouse move handler for desktop - just update target position
 function handleMouseMove(event) {
   const rect = container.getBoundingClientRect();
-  const offsetX = event.clientX - (rect.left + rect.width / 2);
-  const offsetY = event.clientY - (rect.top + rect.height / 2);
-  applyParallax(offsetX, offsetY);
+  targetX = event.clientX - (rect.left + rect.width / 2);
+  targetY = event.clientY - (rect.top + rect.height / 2);
 }
 
-// Device orientation handler for mobile
+// Mouse leave handler - reset to center
+function handleMouseLeave() {
+  targetX = 0;
+  targetY = 0;
+}
+
+// Animation loop for smooth parallax using requestAnimationFrame
+function animate() {
+  // Lerp (linear interpolation) for smooth movement
+  const lerp = (start, end, factor) => start + (end - start) * factor;
+  const smoothFactor = 0.1; // Lower = smoother but slower, higher = faster but less smooth
+
+  currentX = lerp(currentX, targetX, smoothFactor);
+  currentY = lerp(currentY, targetY, smoothFactor);
+
+  applyParallax(currentX, currentY);
+  requestAnimationFrame(animate);
+}
+
+// Start the animation loop
+if (!prefersReducedMotion) {
+  requestAnimationFrame(animate);
+}
+
+// Device orientation handler for mobile - update target position
 function handleDeviceOrientation(event) {
   const { beta = 0, gamma = 0 } = event;
   /*
@@ -68,14 +104,14 @@ function handleDeviceOrientation(event) {
     We scale these values down and clamp them so the effect remains subtle.
   */
   const clampValue = (val, max) => Math.min(Math.max(val, -max), max);
-  const scaleFactor = 5; // reduce scale factor for smoother motion
-  const x = clampValue(gamma * scaleFactor, 150);
-  const y = clampValue(beta * scaleFactor, 150);
-  applyParallax(x, y);
+  const scaleFactor = 6; // Slightly increased for more noticeable effect
+  targetX = clampValue(gamma * scaleFactor, 150);
+  targetY = clampValue(beta * scaleFactor, 150);
 }
 
 // Register event listeners
 window.addEventListener('mousemove', handleMouseMove);
+window.addEventListener('mouseleave', handleMouseLeave);
 
 /*
  * Mobile device orientation handling

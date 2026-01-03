@@ -35,7 +35,8 @@ body {
   background-size: cover;
   background-position: center;
   transform: translateZ(-50px) scale(1.1);
-  transition: transform 0.1s linear;
+  /* Transition removed - smoothing handled by requestAnimationFrame in JS */
+  will-change: transform;
 }
 
 /* Logo floating above background */
@@ -78,6 +79,13 @@ body {
 .socials a:hover,
 .socials a:focus {
   opacity: 1;
+}
+
+/* Visible focus indicator for keyboard navigation accessibility */
+.socials a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 
 /* Style the SVG icons inside the social links */
