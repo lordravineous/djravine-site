@@ -34,6 +34,31 @@ let currentY = 0;
 let targetX = 0;
 let targetY = 0;
 
+// Current and target rotations for tilt card effect
+let currentRotateX = 0;
+let currentRotateY = 0;
+let targetRotateX = 0;
+let targetRotateY = 0;
+
+/**
+ * Apply 3D tilt rotation to the container, creating a "floating card" effect.
+ * The rotation is inverted (mouse on right tilts left) to create depth illusion.
+ * Only applied on desktop for best experience.
+ *
+ * @param {number} rotateX Rotation around X axis (degrees)
+ * @param {number} rotateY Rotation around Y axis (degrees)
+ */
+function applyTilt(rotateX, rotateY) {
+  // Skip tilt on mobile or if user prefers reduced motion
+  if (isMobile || prefersReducedMotion) {
+    container.style.transform = '';
+    return;
+  }
+
+  // Apply 3D rotation to container
+  container.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+}
+
 /**
  * Apply transforms to the background image only. The logo and socials stay
  * fixed so they remain easy to click. We also control the intensity via
@@ -64,29 +89,50 @@ function applyParallax(offsetX, offsetY) {
   bg.style.transform = `translate(${x * translationFactor}px, ${y * translationFactor}px) scale(${baseScale})`;
 }
 
-// Mouse move handler for desktop - just update target position
+// Mouse move handler for desktop - update target position and rotation
 function handleMouseMove(event) {
   const rect = container.getBoundingClientRect();
   targetX = event.clientX - (rect.left + rect.width / 2);
   targetY = event.clientY - (rect.top + rect.height / 2);
+
+  // Calculate target rotation for tilt effect
+  // Normalize to -1 to 1 range, then scale to degrees
+  const normalizedX = targetX / (rect.width / 2);
+  const normalizedY = targetY / (rect.height / 2);
+
+  // Invert and scale rotations for natural tilt feel
+  // Max rotation of ~8 degrees for subtle effect
+  const maxTilt = 8;
+  targetRotateY = normalizedX * maxTilt; // Horizontal mouse = Y rotation
+  targetRotateX = -normalizedY * maxTilt; // Vertical mouse = X rotation (inverted)
 }
 
 // Mouse leave handler - reset to center
 function handleMouseLeave() {
   targetX = 0;
   targetY = 0;
+  targetRotateX = 0;
+  targetRotateY = 0;
 }
 
-// Animation loop for smooth parallax using requestAnimationFrame
+// Animation loop for smooth parallax and tilt using requestAnimationFrame
 function animate() {
   // Lerp (linear interpolation) for smooth movement
   const lerp = (start, end, factor) => start + (end - start) * factor;
   const smoothFactor = 0.1; // Lower = smoother but slower, higher = faster but less smooth
 
+  // Update parallax position
   currentX = lerp(currentX, targetX, smoothFactor);
   currentY = lerp(currentY, targetY, smoothFactor);
 
+  // Update tilt rotation
+  currentRotateX = lerp(currentRotateX, targetRotateX, smoothFactor);
+  currentRotateY = lerp(currentRotateY, targetRotateY, smoothFactor);
+
+  // Apply both effects
+  applyTilt(currentRotateX, currentRotateY);
   applyParallax(currentX, currentY);
+
   requestAnimationFrame(animate);
 }
 
